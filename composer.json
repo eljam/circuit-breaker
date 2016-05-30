@@ -1,0 +1,27 @@
+{
+    "name": "eljam/circuit-breaker",
+    "description": "A php Circuit Breaker",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "eljam",
+            "email": "guillaume.cavana@gmail.com"
+        }
+    ],
+    "autoload": {
+        "psr-4": { "Eljam\\CircuitBreaker\\": "src/" }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Eljam\\CircuitBreaker\\": "tests/"
+        }
+    },
+    "require": {
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^4.8"
+    },
+    "config": {
+        "bin-dir": "bin/"
+    }
+}
