@@ -14,7 +14,7 @@ class BreakerTest extends \PHPUnit_Framework_TestCase
      */
     public function testOpenBehavior()
     {
-        $breaker = new Breaker('exception breaker', [CustomException::class]);
+        $breaker = new Breaker('exception breaker', null, [CustomException::class]);
 
         $this->setExpectedException('Eljam\CircuitBreaker\Exception\CircuitOpenException');
 
@@ -25,5 +25,42 @@ class BreakerTest extends \PHPUnit_Framework_TestCase
         for ($i = 0; $i <= 5; $i++) {
             $breaker->protect($fn);
         }
+    }
+
+
+    /**
+     * testGetTheResult.
+     */
+    public function testGetTheResult()
+    {
+        $breaker = new Breaker('simple echo');
+        $hello = 'eljam';
+
+        $fn = function () use ($hello) {
+            return $hello;
+        };
+
+        $result = $breaker->protect($fn);
+
+        $this->assertSame($hello, $result);
+    }
+
+    /**
+     * testIgnoreException.
+     */
+    public function testIgnoreException()
+    {
+        $breaker = new Breaker('simple echo', null, [CustomException::class]);
+        $hello = 'eljam';
+
+        $fn = function () use ($hello) {
+            throw new CustomException("An error as occured");
+
+            return $hello;
+        };
+
+        $result = $breaker->protect($fn);
+
+        $this->assertNull($result);
     }
 }

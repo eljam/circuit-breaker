@@ -13,11 +13,22 @@
  * @author Guillaume Cavana <guillaume.cavana@gmail.com>
  */
 
-namespace Eljam\CircuitBreaker\Exception;
+namespace Eljam\CircuitBreaker\Util;
 
 /**
- * Class CircuitBreakerException.
+ * Class Utils.
  */
-class CircuitOpenException extends \Exception
+class Utils
 {
+    /**
+     * snakeCase.
+     *
+     * @param string $word
+     *
+     * @return string
+     */
+    public static function snakeCase($word)
+    {
+        return strtolower(str_replace(' ', '_', $word));
+    }
 }
