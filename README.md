@@ -13,6 +13,7 @@ The main idea is to protect your code from making unnecessary call if the micros
 - Exclude some exceptions from being throwned, return null instead.
 - Multiprocess updates handled with a cache library. Supports all cache provider from (doctrine cache library).
 - Monitor failure
+- Event powered
 
 [![Build Status](https://img.shields.io/travis/eljam/circuit-breaker.svg?branch=master&style=flat-square)](https://travis-ci.org/eljam/circuit-breaker) [![Code Quality](https://img.shields.io/scrutinizer/g/eljam/circuit-breaker.svg?b=master&style=flat-square)](https://scrutinizer-ci.com/g/eljam/circuit-breaker/?branch=master) [![Code Coverage](https://img.shields.io/coveralls/eljam/circuit-breaker.svg?style=flat-square)](https://coveralls.io/r/eljam/circuit-breaker) [![SensioLabsInsight](https://insight.sensiolabs.com/projects/dd1c1da1-d469-4113-80f3-874c9d1deffd/mini.png)](https://insight.sensiolabs.com/projects/dd1c1da1-d469-4113-80f3-874c9d1deffd) [![Latest Unstable Version](https://poser.pugx.org/eljam/circuit-breaker/v/unstable)](https://packagist.org/packages/eljam/circuit-breaker)
 [![Latest Stable Version](https://poser.pugx.org/eljam/circuit-breaker/v/stable)](https://packagist.org/packages/eljam/circuit-breaker)
@@ -43,6 +44,4 @@ $result = $breaker->protect(function () {
 ```
 
 #Todo
-- [ ] Refacto the logic in the breaker class, a little bit messy.
 - [ ] Monitoring service
-- [ ] Extends with event

@@ -14,7 +14,10 @@ class BreakerTest extends \PHPUnit_Framework_TestCase
      */
     public function testOpenBehavior()
     {
-        $breaker = new Breaker('exception breaker', null, [CustomException::class]);
+        $breaker = new Breaker(
+            'exception breaker',
+            ['exclude_exceptions' => [CustomException::class]]
+        );
 
         $this->setExpectedException('Eljam\CircuitBreaker\Exception\CircuitOpenException');
 
@@ -50,7 +53,10 @@ class BreakerTest extends \PHPUnit_Framework_TestCase
      */
     public function testIgnoreException()
     {
-        $breaker = new Breaker('simple echo', null, [CustomException::class]);
+        $breaker = new Breaker(
+            'simple echo',
+            ['exclude_exceptions' => [CustomException::class]]
+        );
         $hello = 'eljam';
 
         $fn = function () use ($hello) {

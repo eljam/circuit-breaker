@@ -16,9 +16,12 @@
 namespace Eljam\CircuitBreaker;
 
 use Doctrine\Common\Cache\ArrayCache;
-use Doctrine\Common\Cache\CacheProvider;
+use Doctrine\Common\Cache\Cache;
 use Eljam\CircuitBreaker\Exception\CircuitOpenException;
+use Eljam\CircuitBreaker\Handler\Handler;
+use Eljam\CircuitBreaker\Handler\HandlerInterface;
 use Eljam\CircuitBreaker\Util\Utils;
+use Symfony\Component\OptionsResolver\OptionsResolver;
 
 /**
  * Class Breaker.
@@ -26,48 +29,63 @@ use Eljam\CircuitBreaker\Util\Utils;
 class Breaker
 {
     /**
-     * $circuit.
+     * $name.
      *
-     * @var Circuit
+     * @var string
      */
-    protected $circuit;
+    protected $name;
 
     /**
      * $cache.
      *
-     * @var CacheProvider
+     * @var Cache
      */
-    protected $cache;
+    protected $store;
 
     /**
-     * $excludeExceptions.
+     * $config.
      *
      * @var array
      */
-    protected $excludeExceptions = [];
+    protected $config;
+
+    /**
+     * $handler.
+     *
+     * @var HandlerInterface
+     */
+    protected $handler;
 
     /**
      * Constructor.
      *
-     * @param string $name
-     * @param string $cache
-     * @param array  $excludeExceptions
+     * @param string  $name
+     * @param array   $config
+     * @param Cache   $store
+     * @param Handler $handler
      */
     public function __construct(
         $name,
-        CacheProvider $cache = null,
-        array $excludeExceptions = []
+        array $config = [],
+        Cache $store = null,
+        HandlerInterface $handler = null
     ) {
-        $name = Utils::snakeCase($name);
-        $this->excludeExceptions = array_merge($this->excludeExceptions, $excludeExceptions);
-        $this->cache = $cache !== null ? $cache : (new ArrayCache());
+        $resolver = new OptionsResolver();
+        $resolver->setDefaults([
+            'max_failure' => 5,
+            'reset_timeout' => 10,
+            'exclude_exceptions' => [],
+        ]);
 
-        if ($this->cache->contains($name)) {
-            $this->circuit = $this->cache->fetch($name);
-        } else {
-            $this->circuit = new Circuit($name);
-            $this->cache->save($name, $this->circuit);
-        }
+        $resolver->setAllowedTypes('exclude_exceptions', 'array');
+        $resolver->setAllowedTypes('max_failure', 'int');
+        $resolver->setAllowedTypes('reset_timeout', 'int');
+
+        $this->config = $resolver->resolve($config);
+        $this->name = Utils::snakeCase($name);
+        $this->store = $store !== null ? $store : (new ArrayCache());
+        $this->handler = $handler !== null ? $handler($this->config) : new Handler($this->config);
+        $this->circuit = $this->loadCircuit($this->name);
     }
 
     /**
@@ -81,14 +99,20 @@ class Breaker
     public function protect(\Closure $closure)
     {
         try {
-            if ($this->circuit->isClosed() || $this->circuit->isHalfOpen()) {
+            $result = null;
+
+            if ($this->isClosed($this->circuit) || $this->isHalfOpen($this->circuit)) {
                 $result = $closure();
-            } elseif ($this->circuit->isOpen()) {
+            } elseif ($this->isOpen($this->circuit)) {
                 throw new CircuitOpenException();
             }
-            $this->success();
+            $this->success($this->circuit);
         } catch (\Exception $e) {
-            $result = $this->failure($e);
+            $this->failure($this->circuit);
+
+            if (!in_array(get_class($e), $this->config['exclude_exceptions'])) {
+                $result = $e;
+            }
         }
 
         if ($result instanceof \Exception) {
@@ -99,44 +123,88 @@ class Breaker
     }
 
     /**
-     * success.
+     * isClosed.
+     *
+     * @param Circuit $circuit
+     *
+     * @return bool
      */
-    protected function success()
+    private function isClosed($circuit)
     {
-        $this->circuit->setFailureCount(0);
-        $this->circuit->setState(Circuit::CLOSED);
-        $this->cache->save($this->circuit->getName(), $this->circuit);
+        return $this->handler->isClosed($circuit);
     }
 
     /**
-     * trip.
+     * isOpen.
      *
-     * @param \Expcetion $e
+     * @param Circuit $circuit
      *
-     * @return \Exception|void
+     * @return bool
      */
-    protected function failure(\Exception $e)
+    private function isOpen($circuit)
     {
-        $count = $this->circuit->getFailureCount();
-        $this->circuit->setFailureCount($count += 1);
+        return $this->handler->isOpen($circuit);
+    }
 
-        //Theshold has been reached and timeout is passed
-        //so we can try again
-        if (($this->circuit->getFailureCount() >= $this->circuit->getFailureTreshold())
-            && (time() - $this->circuit->getLastFailtureTime() > $this->circuit->getResetTimeout())) {
-            $this->circuit->setState(Circuit::HALF_OPEN);
-        //Theshold has been reached so we open the circuit
-        } elseif ($this->circuit->getFailureCount() >= $this->circuit->getFailureTreshold()) {
-            $this->circuit->setState(Circuit::OPEN);
+    /**
+     * isHalfOpen.
+     *
+     * @param Circuit $circuit
+     *
+     * @return bool
+     */
+    private function isHalfOpen($circuit)
+    {
+        return $this->handler->isHalfOpen($circuit);
+    }
+
+    /**
+     * success.
+     *
+     * @param Circuit $circuit
+     */
+    private function success($circuit)
+    {
+        $circuit->resetFailture();
+
+        $this->writeToStore($circuit);
+    }
+
+    /**
+     * failure.
+     *
+     * @param Circuit $circuit
+     */
+    private function failure(Circuit $circuit)
+    {
+        $circuit->incrementFailure();
+        $circuit->setLastFailure(time());
+
+        $this->writeToStore($circuit);
+    }
+
+    /**
+     * loadCircuit.
+     *
+     * @param string $name
+     *
+     * @return Circuit
+     */
+    private function loadCircuit($name)
+    {
+        if ($this->store->contains($name)) {
+            $circuit = $this->store->fetch($name);
+        } else {
+            $circuit = new Circuit($name);
         }
 
-        $this->circuit->setLastFailtureTime(time());
+        $this->writeToStore($circuit);
 
-        //We save the circuit state
-        $this->cache->save($this->circuit->getName(), $this->circuit);
+        return $circuit;
+    }
 
-        if (!in_array(get_class($e), $this->excludeExceptions)) {
-            return $e;
-        }
+    private function writeToStore(Circuit $circuit)
+    {
+        $this->store->save($circuit->getName(), $circuit);
     }
 }

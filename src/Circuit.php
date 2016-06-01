@@ -20,59 +20,18 @@ namespace Eljam\CircuitBreaker;
  */
 class Circuit
 {
-    const OPEN = 'open';
-    const HALF_OPEN = 'half-open';
-    const CLOSED = 'closed';
-
     protected $name;
-    protected $failureTreshold;
-    protected $resetTimeout;
-    protected $state = self::CLOSED;
-    protected $failureCount = 0;
-    protected $lastFailtureTime;
+    protected $failures = 0;
+    protected $lastFailure;
 
     /**
      * Constructor.
      *
      * @param string $name
-     * @param int    $failureTreshold
-     * @param int    $resetTimeout
      */
-    public function __construct($name, $failureTreshold = 5, $resetTimeout = 5)
+    public function __construct($name)
     {
         $this->name = $name;
-        $this->failureTreshold = $failureTreshold;
-        $this->resetTimeout = $resetTimeout;
-    }
-
-    /**
-     * isClosed.
-     *
-     * @return bool
-     */
-    public function isClosed()
-    {
-        return $this->state == self::CLOSED;
-    }
-
-    /**
-     * isOpen.
-     *
-     * @return bool
-     */
-    public function isOpen()
-    {
-        return $this->state == self::OPEN;
-    }
-
-    /**
-     * isHalfOpen.
-     *
-     * @return bool
-     */
-    public function isHalfOpen()
-    {
-        return $this->state == self::HALF_OPEN;
     }
 
     /**
@@ -86,82 +45,48 @@ class Circuit
     }
 
     /**
-     * setState.
-     *
-     * @param string $state
-     */
-    public function setState($state)
-    {
-        $this->state = $state;
-    }
-
-    /**
-     * getState.
-     *
-     * @return string
-     */
-    public function getState()
-    {
-        return $this->state;
-    }
-
-    /**
-     * getFailureTreshold.
-     *
-     * @return int
-     */
-    public function getFailureTreshold()
-    {
-        return $this->failureTreshold;
-    }
-
-    /**
-     * getResetTimeout.
-     *
-     * @return int
-     */
-    public function getResetTimeout()
-    {
-        return $this->resetTimeout;
-    }
-
-    /**
      * getFailureCount.
      *
      * @return int
      */
-    public function getFailureCount()
+    public function getFailures()
     {
-        return (int) $this->failureCount;
+        return (int) $this->failures;
     }
 
     /**
-     * setFailureCount.
-     *
-     * @param int $count
+     * incrementFailure.
      */
-    public function setFailureCount($count)
+    public function incrementFailure()
     {
-        $this->failureCount = $count;
+        $this->failures += 1;
     }
 
     /**
-     * getLastFailtureTime.
+     * resetFailture.
+     */
+    public function resetFailture()
+    {
+        $this->failures = 0;
+    }
+
+    /**
+     * getLastFailure.
      *
      * @return int
      */
-    public function getLastFailtureTime()
+    public function getLastFailure()
     {
-        return  $this->lastFailtureTime;
+        return  $this->lastFailure;
     }
 
     /**
-     * setLastFailtureTime.
+     * setLastFailure.
      *
      * @param int $time
      */
-    public function setLastFailtureTime($time)
+    public function setLastFailure($time)
     {
-        $this->lastFailtureTime = $time;
+        $this->lastFailure = $time;
     }
 }
