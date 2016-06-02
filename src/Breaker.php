@@ -17,10 +17,14 @@ namespace Eljam\CircuitBreaker;
 
 use Doctrine\Common\Cache\ArrayCache;
 use Doctrine\Common\Cache\Cache;
+use Eljam\CircuitBreaker\Event\CircuitEvent;
+use Eljam\CircuitBreaker\Event\CircuitEvents;
 use Eljam\CircuitBreaker\Exception\CircuitOpenException;
 use Eljam\CircuitBreaker\Handler\Handler;
 use Eljam\CircuitBreaker\Handler\HandlerInterface;
 use Eljam\CircuitBreaker\Util\Utils;
+use Symfony\Component\EventDispatcher\EventDispatcher;
+use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 
 /**
@@ -28,13 +32,6 @@ use Symfony\Component\OptionsResolver\OptionsResolver;
  */
 class Breaker
 {
-    /**
-     * $name.
-     *
-     * @var string
-     */
-    protected $name;
-
     /**
      * $cache.
      *
@@ -57,24 +54,34 @@ class Breaker
     protected $handler;
 
     /**
+     * $dispatcher.
+     *
+     * @var EventDispatcherInterface
+     */
+    protected $dispatcher;
+
+    /**
      * Constructor.
      *
-     * @param string  $name
-     * @param array   $config
-     * @param Cache   $store
-     * @param Handler $handler
+     * @param string                   $name
+     * @param array                    $config
+     * @param Cache                    $store
+     * @param Handler                  $handler
+     * @param EventDispatcherInterface $dispatcher
      */
     public function __construct(
         $name,
         array $config = [],
         Cache $store = null,
-        HandlerInterface $handler = null
+        HandlerInterface $handler = null,
+        EventDispatcherInterface $dispatcher = null
     ) {
         $resolver = new OptionsResolver();
         $resolver->setDefaults([
             'max_failure' => 5,
-            'reset_timeout' => 10,
+            'reset_timeout' => 5,
             'exclude_exceptions' => [],
+            'ignore_exceptions' => false,
         ]);
 
         $resolver->setAllowedTypes('exclude_exceptions', 'array');
@@ -82,10 +89,11 @@ class Breaker
         $resolver->setAllowedTypes('reset_timeout', 'int');
 
         $this->config = $resolver->resolve($config);
-        $this->name = Utils::snakeCase($name);
-        $this->store = $store !== null ? $store : (new ArrayCache());
-        $this->handler = $handler !== null ? $handler($this->config) : new Handler($this->config);
-        $this->circuit = $this->loadCircuit($this->name);
+        $this->store = null !== $store ? $store : (new ArrayCache());
+        $this->handler = null !== $handler ? $handler($this->config) : new Handler($this->config);
+        $this->dispatcher = null !== $dispatcher ? $dispatcher : new EventDispatcher();
+        $name = Utils::snakeCase($name);
+        $this->circuit = $this->loadCircuit($name);
     }
 
     /**
@@ -100,26 +108,46 @@ class Breaker
     {
         try {
             $result = null;
+            $circuitOpenException = null;
 
             if ($this->isClosed($this->circuit) || $this->isHalfOpen($this->circuit)) {
                 $result = $closure();
+                $this->success($this->circuit);
             } elseif ($this->isOpen($this->circuit)) {
-                throw new CircuitOpenException();
+                $circuitOpenException = new CircuitOpenException();
             }
-            $this->success($this->circuit);
         } catch (\Exception $e) {
             $this->failure($this->circuit);
 
-            if (!in_array(get_class($e), $this->config['exclude_exceptions'])) {
-                $result = $e;
+            if (!$this->config['ignore_exceptions']) {
+                if (!in_array(get_class($e), $this->config['exclude_exceptions'])) {
+                    $result = $e;
+                }
             }
         }
 
+        // Throw circuit exception when it is opened
+        if (null !== $circuitOpenException) {
+            throw $circuitOpenException;
+        }
+
+        //Throw closure exception
         if ($result instanceof \Exception) {
-            throw $e;
+            throw $result;
         }
 
         return $result;
+    }
+
+    /**
+     * addListener.
+     *
+     * @param string         $eventName
+     * @param \Closure|array $listener
+     */
+    public function addListener($eventName, $listener)
+    {
+        $this->dispatcher->addListener($eventName, $listener);
     }
 
     /**
@@ -129,9 +157,15 @@ class Breaker
      *
      * @return bool
      */
-    private function isClosed($circuit)
+    protected function isClosed($circuit)
     {
-        return $this->handler->isClosed($circuit);
+        if ($this->handler->isClosed($circuit)) {
+            $this->dispatcher->dispatch(CircuitEvents::CLOSED, (new CircuitEvent($circuit)));
+
+            return true;
+        }
+
+        return;
     }
 
     /**
@@ -141,9 +175,15 @@ class Breaker
      *
      * @return bool
      */
-    private function isOpen($circuit)
+    protected function isOpen($circuit)
     {
-        return $this->handler->isOpen($circuit);
+        if ($this->handler->isOpen($circuit)) {
+            $this->dispatcher->dispatch(CircuitEvents::OPEN, (new CircuitEvent($circuit)));
+
+            return true;
+        }
+
+        return;
     }
 
     /**
@@ -153,9 +193,15 @@ class Breaker
      *
      * @return bool
      */
-    private function isHalfOpen($circuit)
+    protected function isHalfOpen($circuit)
     {
-        return $this->handler->isHalfOpen($circuit);
+        if ($this->handler->isHalfOpen($circuit)) {
+            $this->dispatcher->dispatch(CircuitEvents::HALF_OPEN, (new CircuitEvent($circuit)));
+
+            return true;
+        }
+
+        return;
     }
 
     /**
@@ -163,10 +209,11 @@ class Breaker
      *
      * @param Circuit $circuit
      */
-    private function success($circuit)
+    protected function success($circuit)
     {
         $circuit->resetFailture();
 
+        $this->dispatcher->dispatch(CircuitEvents::SUCCESS, (new CircuitEvent($circuit)));
         $this->writeToStore($circuit);
     }
 
@@ -175,11 +222,12 @@ class Breaker
      *
      * @param Circuit $circuit
      */
-    private function failure(Circuit $circuit)
+    protected function failure(Circuit $circuit)
     {
         $circuit->incrementFailure();
         $circuit->setLastFailure(time());
 
+        $this->dispatcher->dispatch(CircuitEvents::FAILURE, (new CircuitEvent($circuit)));
         $this->writeToStore($circuit);
     }
 
@@ -190,7 +238,7 @@ class Breaker
      *
      * @return Circuit
      */
-    private function loadCircuit($name)
+    protected function loadCircuit($name)
     {
         if ($this->store->contains($name)) {
             $circuit = $this->store->fetch($name);
@@ -203,7 +251,7 @@ class Breaker
         return $circuit;
     }
 
-    private function writeToStore(Circuit $circuit)
+    protected function writeToStore(Circuit $circuit)
     {
         $this->store->save($circuit->getName(), $circuit);
     }

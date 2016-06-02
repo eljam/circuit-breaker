@@ -13,14 +13,16 @@
  * @author Guillaume Cavana <guillaume.cavana@gmail.com>
  */
 
-namespace Eljam\CircuitBreaker;
+namespace Eljam\CircuitBreaker\Event;
 
 /**
- * Class Status.
+ * Class CircuitEvents.
  */
-final class Status
+final class CircuitEvents
 {
-    const OPEN = 'open';
-    const HALF_OPEN = 'half-open';
-    const CLOSE = 'close';
+    const SUCCESS = 'circuit.success';
+    const FAILURE = 'circuit.failure';
+    const OPEN = 'circuit.open';
+    const CLOSED = 'circuit.closed';
+    const HALF_OPEN = 'circuit.half_open';
 }
