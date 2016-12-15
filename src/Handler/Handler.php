@@ -42,7 +42,7 @@ class Handler
     /**
      * {@inheritdoc}
      */
-    public function isClosed($circuit)
+    public function isClosed(Circuit $circuit)
     {
         return $circuit->getFailures() < $this->config['max_failure'];
     }
@@ -50,7 +50,7 @@ class Handler
     /**
      * {@inheritdoc}
      */
-    public function isOpen($circuit)
+    public function isOpen(Circuit $circuit)
     {
         return $circuit->getFailures() >= $this->config['max_failure'];
     }
@@ -58,7 +58,7 @@ class Handler
     /**
      * {@inheritdoc}
      */
-    public function isHalfOpen($circuit)
+    public function isHalfOpen(Circuit $circuit)
     {
         return ($circuit->getFailures() >= $this->config['max_failure'])
             && (time() - $circuit->getLastFailure() > $this->config['reset_timeout']);

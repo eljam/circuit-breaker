@@ -15,6 +15,8 @@
 
 namespace Eljam\CircuitBreaker\Handler;
 
+use Eljam\CircuitBreaker\Circuit;
+
 /**
  * Class HandlerInterface.
  */
