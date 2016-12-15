@@ -17,6 +17,7 @@ namespace Eljam\CircuitBreaker;
 
 use Doctrine\Common\Cache\ArrayCache;
 use Doctrine\Common\Cache\Cache;
+use Eljam\CircuitBreaker\Circuit;
 use Eljam\CircuitBreaker\Event\CircuitEvent;
 use Eljam\CircuitBreaker\Event\CircuitEvents;
 use Eljam\CircuitBreaker\Exception\CircuitOpenException;
@@ -66,7 +67,7 @@ class Breaker
      * @param string                   $name
      * @param array                    $config
      * @param Cache                    $store
-     * @param Handler                  $handler
+     * @param HandlerInterface         $handler
      * @param EventDispatcherInterface $dispatcher
      */
     public function __construct(
@@ -157,7 +158,7 @@ class Breaker
      *
      * @return bool
      */
-    protected function isClosed($circuit)
+    protected function isClosed(Circuit $circuit)
     {
         if ($this->handler->isClosed($circuit)) {
             $this->dispatcher->dispatch(CircuitEvents::CLOSED, (new CircuitEvent($circuit)));
@@ -175,7 +176,7 @@ class Breaker
      *
      * @return bool
      */
-    protected function isOpen($circuit)
+    protected function isOpen(Circuit $circuit)
     {
         if ($this->handler->isOpen($circuit)) {
             $this->dispatcher->dispatch(CircuitEvents::OPEN, (new CircuitEvent($circuit)));
@@ -193,7 +194,7 @@ class Breaker
      *
      * @return bool
      */
-    protected function isHalfOpen($circuit)
+    protected function isHalfOpen(Circuit $circuit)
     {
         if ($this->handler->isHalfOpen($circuit)) {
             $this->dispatcher->dispatch(CircuitEvents::HALF_OPEN, (new CircuitEvent($circuit)));
@@ -209,7 +210,7 @@ class Breaker
      *
      * @param Circuit $circuit
      */
-    protected function success($circuit)
+    protected function success(Circuit $circuit)
     {
         $circuit->resetFailture();
 
