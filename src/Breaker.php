@@ -89,8 +89,8 @@ class Breaker
         $resolver->setAllowedTypes('reset_timeout', 'int');
 
         $this->config = $resolver->resolve($config);
-        $this->store = $store ?: (new ArrayCache());
-        $this->handler = null !== $handler ? $handler($this->config) : new Handler($this->config);
+        $this->store = $store ?: new ArrayCache();
+        $this->handler = $handler ?: new Handler($this->config);
         $this->dispatcher = $dispatcher ?: new EventDispatcher();
         $name = Utils::snakeCase($name);
         $this->circuit = $this->loadCircuit($name);
