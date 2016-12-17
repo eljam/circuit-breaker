@@ -63,9 +63,9 @@ class Circuit
     }
 
     /**
-     * resetFailture.
+     * resetFailure.
      */
-    public function resetFailture()
+    public function resetFailure()
     {
         $this->failures = 0;
     }
@@ -77,7 +77,7 @@ class Circuit
      */
     public function getLastFailure()
     {
-        return  $this->lastFailure;
+        return $this->lastFailure;
     }
 
     /**

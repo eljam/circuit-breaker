@@ -90,9 +90,9 @@ class Breaker
         $resolver->setAllowedTypes('reset_timeout', 'int');
 
         $this->config = $resolver->resolve($config);
-        $this->store = null !== $store ? $store : (new ArrayCache());
-        $this->handler = null !== $handler ? $handler($this->config) : new Handler($this->config);
-        $this->dispatcher = null !== $dispatcher ? $dispatcher : new EventDispatcher();
+        $this->store = $store ?: new ArrayCache();
+        $this->handler = $handler ?: new Handler($this->config);
+        $this->dispatcher = $dispatcher ?: new EventDispatcher();
         $name = Utils::snakeCase($name);
         $this->circuit = $this->loadCircuit($name);
     }
@@ -101,7 +101,7 @@ class Breaker
      * protect.
      *
      * @param \Closure $closure
-     * @throw  \Exception
+     * @throws \Exception
      *
      * @return mixed
      */
@@ -166,7 +166,7 @@ class Breaker
             return true;
         }
 
-        return;
+        return false;
     }
 
     /**
@@ -184,7 +184,7 @@ class Breaker
             return true;
         }
 
-        return;
+        return false;
     }
 
     /**
@@ -202,7 +202,7 @@ class Breaker
             return true;
         }
 
-        return;
+        return false;
     }
 
     /**
@@ -212,7 +212,7 @@ class Breaker
      */
     protected function success(Circuit $circuit)
     {
-        $circuit->resetFailture();
+        $circuit->resetFailure();
 
         $this->dispatcher->dispatch(CircuitEvents::SUCCESS, (new CircuitEvent($circuit)));
         $this->writeToStore($circuit);
@@ -252,6 +252,9 @@ class Breaker
         return $circuit;
     }
 
+    /**
+     * @param Circuit $circuit
+     */
     protected function writeToStore(Circuit $circuit)
     {
         $this->store->save($circuit->getName(), $circuit);
