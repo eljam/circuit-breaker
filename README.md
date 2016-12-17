@@ -16,6 +16,8 @@ The main idea is to protect your code from making unnecessary call if the micros
 
 [![Build Status](https://img.shields.io/travis/eljam/circuit-breaker.svg?branch=master&style=flat-square)](https://travis-ci.org/eljam/circuit-breaker) [![Code Quality](https://img.shields.io/scrutinizer/g/eljam/circuit-breaker.svg?b=master&style=flat-square)](https://scrutinizer-ci.com/g/eljam/circuit-breaker/?branch=master) [![Code Coverage](https://img.shields.io/coveralls/eljam/circuit-breaker.svg?style=flat-square)](https://coveralls.io/r/eljam/circuit-breaker) [![SensioLabsInsight](https://insight.sensiolabs.com/projects/dd1c1da1-d469-4113-80f3-874c9d1deffd/mini.png)](https://insight.sensiolabs.com/projects/dd1c1da1-d469-4113-80f3-874c9d1deffd) [![Latest Unstable Version](https://poser.pugx.org/eljam/circuit-breaker/v/unstable)](https://packagist.org/packages/eljam/circuit-breaker)
 [![Latest Stable Version](https://poser.pugx.org/eljam/circuit-breaker/v/stable)](https://packagist.org/packages/eljam/circuit-breaker)
+[![Downloads](https://img.shields.io/packagist/dt/eljam/circuit-breaker.svg)](https://packagist.org/packages/eljam/circuit-breaker)
+[![license](https://img.shields.io/packagist/l/eljam/circuit-breaker.svg)](https://github.com/eljam/circuit-breaker/blob/master/LICENSE)
 
 
 Full Example:
