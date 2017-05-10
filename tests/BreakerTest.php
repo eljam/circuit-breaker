@@ -57,11 +57,11 @@ class BreakerTest extends \PHPUnit_Framework_TestCase
     {
         $breaker = new Breaker(
             'exception breaker',
-            ['exclude_exceptions' => [CustomException::class]]
+            ['exclude_exceptions' => ['Eljam\CircuitBreaker\Exception\CustomException']]
         );
 
         $breaker->addListener(CircuitEvents::OPEN, function (Event $event) {
-            $this->assertInstanceOf(Circuit::class, $event->getCircuit());
+            $this->assertInstanceOf('Eljam\CircuitBreaker\Circuit', $event->getCircuit());
         });
 
         $this->setExpectedException('Eljam\CircuitBreaker\Exception\CircuitOpenException');
@@ -89,7 +89,7 @@ class BreakerTest extends \PHPUnit_Framework_TestCase
         );
 
         $breaker->addListener(CircuitEvents::HALF_OPEN, function (Event $event) {
-            $this->assertInstanceOf(Circuit::class, $event->getCircuit());
+            $this->assertInstanceOf('Eljam\CircuitBreaker\Circuit', $event->getCircuit());
         });
 
         $fn = function () {
@@ -101,7 +101,7 @@ class BreakerTest extends \PHPUnit_Framework_TestCase
                 $breaker->protect($fn);
             }
         } catch (CircuitOpenException $e) {
-            $this->assertSame(CircuitOpenException::class, get_class($e));
+            $this->assertSame('Eljam\CircuitBreaker\Exception\CircuitOpenException', get_class($e));
         }
 
         sleep(2);
@@ -172,7 +172,7 @@ class BreakerTest extends \PHPUnit_Framework_TestCase
 
         $breaker->protect($fn);
 
-        $this->assertInstanceOf(CustomException::class, $result);
+        $this->assertInstanceOf('Eljam\CircuitBreaker\Exception\CustomException', $result);
     }
 
     public function tearDown()
