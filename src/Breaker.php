@@ -17,7 +17,6 @@ namespace Eljam\CircuitBreaker;
 
 use Doctrine\Common\Cache\ArrayCache;
 use Doctrine\Common\Cache\Cache;
-use Eljam\CircuitBreaker\Circuit;
 use Eljam\CircuitBreaker\Event\CircuitEvent;
 use Eljam\CircuitBreaker\Event\CircuitEvents;
 use Eljam\CircuitBreaker\Exception\CircuitOpenException;
@@ -241,11 +240,7 @@ class Breaker
      */
     protected function loadCircuit($name)
     {
-        if ($this->store->contains($name)) {
-            $circuit = $this->store->fetch($name);
-        } else {
-            $circuit = new Circuit($name);
-        }
+        $circuit = $this->store->fetch($name) ?: new Circuit($name);
 
         $this->writeToStore($circuit);
 
