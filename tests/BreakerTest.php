@@ -3,11 +3,10 @@
 namespace Eljam\CircuitBreaker;
 
 use Doctrine\Common\Cache\FilesystemCache;
-use Eljam\CircuitBreaker\Circuit;
+use Eljam\CircuitBreaker\Event\CircuitEvent;
 use Eljam\CircuitBreaker\Event\CircuitEvents;
 use Eljam\CircuitBreaker\Exception\CircuitOpenException;
 use Eljam\CircuitBreaker\Exception\CustomException;
-use Symfony\Component\EventDispatcher\Event;
 
 /**
  * Class BreakerTest.
@@ -32,22 +31,21 @@ class BreakerTest extends \PHPUnit_Framework_TestCase
 
         $breaker1FailureCount = 0;
 
-        $breaker->addListener(CircuitEvents::FAILURE, function (Event $event) use (&$breaker1FailureCount) {
+        $breaker->addListener(CircuitEvents::FAILURE, function (CircuitEvent $event) use (&$breaker1FailureCount) {
             $breaker1FailureCount = $event->getCircuit()->getFailures();
         });
 
-        $breaker2->addListener(CircuitEvents::FAILURE, function (Event $event) use (&$breaker1FailureCount) {
+        $breaker2->addListener(CircuitEvents::FAILURE, function (CircuitEvent $event) use (&$breaker1FailureCount) {
             $this->assertEquals($breaker1FailureCount, $event->getCircuit()->getFailures());
         });
 
         $fn = function () {
-            throw new CustomException("An error as occured");
+            throw new CustomException("An error as occurred");
         };
 
         $breaker->protect($fn);
 
         $breaker2->protect($fn);
-
     }
 
     /**
@@ -57,17 +55,17 @@ class BreakerTest extends \PHPUnit_Framework_TestCase
     {
         $breaker = new Breaker(
             'exception breaker',
-            ['exclude_exceptions' => [CustomException::class]]
+            ['exclude_exceptions' => ['Eljam\CircuitBreaker\Exception\CustomException']]
         );
 
-        $breaker->addListener(CircuitEvents::OPEN, function (Event $event) {
-            $this->assertInstanceOf(Circuit::class, $event->getCircuit());
+        $breaker->addListener(CircuitEvents::OPEN, function (CircuitEvent $event) {
+            $this->assertInstanceOf('Eljam\CircuitBreaker\Circuit', $event->getCircuit());
         });
 
         $this->setExpectedException('Eljam\CircuitBreaker\Exception\CircuitOpenException');
 
         $fn = function () {
-            throw new CustomException("An error as occured");
+            throw new CustomException("An error as occurred");
         };
 
         for ($i = 0; $i <= 5; $i++) {
@@ -88,12 +86,12 @@ class BreakerTest extends \PHPUnit_Framework_TestCase
             ]
         );
 
-        $breaker->addListener(CircuitEvents::HALF_OPEN, function (Event $event) {
-            $this->assertInstanceOf(Circuit::class, $event->getCircuit());
+        $breaker->addListener(CircuitEvents::HALF_OPEN, function (CircuitEvent $event) {
+            $this->assertInstanceOf('Eljam\CircuitBreaker\Circuit', $event->getCircuit());
         });
 
         $fn = function () {
-            throw new CustomException("An error as occured");
+            throw new CustomException("An error as occurred");
         };
 
         try {
@@ -101,7 +99,7 @@ class BreakerTest extends \PHPUnit_Framework_TestCase
                 $breaker->protect($fn);
             }
         } catch (CircuitOpenException $e) {
-            $this->assertSame(CircuitOpenException::class, get_class($e));
+            $this->assertSame('Eljam\CircuitBreaker\Exception\CircuitOpenException', get_class($e));
         }
 
         sleep(2);
@@ -142,7 +140,7 @@ class BreakerTest extends \PHPUnit_Framework_TestCase
         $hello = 'eljam';
 
         $fn = function () use ($hello) {
-            throw new CustomException("An error as occured");
+            throw new CustomException("An error as occurred");
 
             return $hello;
         };
@@ -165,14 +163,12 @@ class BreakerTest extends \PHPUnit_Framework_TestCase
         $this->setExpectedException('Eljam\CircuitBreaker\Exception\CustomException');
 
         $fn = function () use ($hello) {
-            throw new CustomException("An error as occured");
+            throw new CustomException("An error as occurred");
 
             return $hello;
         };
 
         $breaker->protect($fn);
-
-        $this->assertInstanceOf(CustomException::class, $result);
     }
 
     public function tearDown()
