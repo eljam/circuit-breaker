@@ -59,6 +59,13 @@ class Breaker
      * @var EventDispatcherInterface
      */
     protected $dispatcher;
+    
+    /**
+     * $circuit
+     *
+     * @var Circuit
+     */
+    protected $circuit;
 
     /**
      * Constructor.
