@@ -188,13 +188,14 @@ class Breaker
      */
     protected function isOpen(Circuit $circuit)
     {
+        $open = false;
         if ($this->handler->isOpen($circuit)) {
             $this->dispatcher->dispatch(CircuitEvents::OPEN, (new CircuitEvent($circuit)));
 
-            return true;
+            $open = true;
         }
 
-        return false;
+        return $open;
     }
 
     /**
