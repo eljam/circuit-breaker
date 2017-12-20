@@ -25,7 +25,7 @@ class BreakerTest extends \PHPUnit_Framework_TestCase
      */
     public function testMultiProcess()
     {
-        $fileCache  = new FilesystemCache($this->dir, 'txt');
+        $fileCache = new FilesystemCache($this->dir, 'txt');
         $breaker = new Breaker('github_api', ['ignore_exceptions' => true], $fileCache);
         $breaker2 = new Breaker('github_api', ['ignore_exceptions' => true], $fileCache);
 
@@ -169,6 +169,35 @@ class BreakerTest extends \PHPUnit_Framework_TestCase
         };
 
         $breaker->protect($fn);
+    }
+
+    public function testAllowedException()
+    {
+        $breaker = new Breaker(
+            'allowed_exception',
+            [
+                'ignore_exceptions' => false,
+                'allowed_exceptions' => [
+                    'Eljam\CircuitBreaker\Exception\CustomException',
+                ],
+            ]
+        );
+
+        $breaker1FailureCount = 0;
+        $breaker->addListener(CircuitEvents::FAILURE, function (CircuitEvent $event) use (&$breaker1FailureCount) {
+            $breaker1FailureCount = $event->getCircuit()->getFailures();
+        });
+
+        $fn = function () {
+            throw new CustomException("An error as occurred");
+        };
+
+        try {
+            $breaker->protect($fn);
+        } catch (CustomException $e) {
+            $this->assertInstanceOf('Eljam\CircuitBreaker\Exception\CustomException', $e);
+        }
+        $this->assertSame(0, $breaker1FailureCount);
     }
 
     public function tearDown()

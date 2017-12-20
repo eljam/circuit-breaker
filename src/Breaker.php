@@ -59,7 +59,7 @@ class Breaker
      * @var EventDispatcherInterface
      */
     protected $dispatcher;
-    
+
     /**
      * $circuit
      *
@@ -89,11 +89,13 @@ class Breaker
             'reset_timeout' => 5,
             'exclude_exceptions' => [],
             'ignore_exceptions' => false,
+            'allowed_exceptions' => [],
         ]);
 
         $resolver->setAllowedTypes('exclude_exceptions', 'array');
         $resolver->setAllowedTypes('max_failure', 'int');
         $resolver->setAllowedTypes('reset_timeout', 'int');
+        $resolver->setAllowedTypes('allowed_exceptions', 'array');
 
         $this->config = $resolver->resolve($config);
         $this->store = $store ?: new ArrayCache();
@@ -124,7 +126,9 @@ class Breaker
                 $circuitOpenException = new CircuitOpenException();
             }
         } catch (\Exception $e) {
-            $this->failure($this->circuit);
+            if (!in_array(get_class($e), $this->config['allowed_exceptions'])) {
+                $this->failure($this->circuit);
+            }
 
             if (!$this->config['ignore_exceptions']) {
                 if (!in_array(get_class($e), $this->config['exclude_exceptions'])) {
