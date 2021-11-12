@@ -2,7 +2,7 @@
 
 namespace Eljam\CircuitBreaker;
 
-use Doctrine\Common\Cache\FilesystemCache;
+use Symfony\Component\Cache\Adapter\FilesystemAdapter;
 use Eljam\CircuitBreaker\Event\CircuitEvent;
 use Eljam\CircuitBreaker\Event\CircuitEvents;
 use Eljam\CircuitBreaker\Exception\CircuitOpenException;
@@ -11,11 +11,11 @@ use Eljam\CircuitBreaker\Exception\CustomException;
 /**
  * Class BreakerTest.
  */
-class BreakerTest extends \PHPUnit_Framework_TestCase
+class BreakerTest extends \PHPUnit\Framework\TestCase
 {
     protected $dir;
 
-    public function setUp()
+    public function setUp(): void
     {
         $this->dir = sys_get_temp_dir().DIRECTORY_SEPARATOR.'store';
     }
@@ -23,9 +23,9 @@ class BreakerTest extends \PHPUnit_Framework_TestCase
     /**
      * testMultiProcess.
      */
-    public function testMultiProcess()
+    public function testMultiProcess(): void
     {
-        $fileCache = new FilesystemCache($this->dir, 'txt');
+        $fileCache = new FilesystemAdapter('test', 0, $this->dir);
         $breaker = new Breaker('github_api', ['ignore_exceptions' => true], $fileCache);
         $breaker2 = new Breaker('github_api', ['ignore_exceptions' => true], $fileCache);
 
@@ -51,18 +51,18 @@ class BreakerTest extends \PHPUnit_Framework_TestCase
     /**
      * testOpenBehavior.
      */
-    public function testOpenBehavior()
+    public function testOpenBehavior(): void
     {
         $breaker = new Breaker(
             'exception breaker',
-            ['exclude_exceptions' => ['Eljam\CircuitBreaker\Exception\CustomException']]
+            ['exclude_exceptions' => [CustomException::class]]
         );
 
         $breaker->addListener(CircuitEvents::OPEN, function (CircuitEvent $event) {
-            $this->assertInstanceOf('Eljam\CircuitBreaker\Circuit', $event->getCircuit());
+            $this->assertInstanceOf(Circuit::class, $event->getCircuit());
         });
 
-        $this->setExpectedException('Eljam\CircuitBreaker\Exception\CircuitOpenException');
+        $this->expectException(CircuitOpenException::class);
 
         $fn = function () {
             throw new CustomException("An error as occurred");
@@ -76,7 +76,7 @@ class BreakerTest extends \PHPUnit_Framework_TestCase
     /**
      * testHalfOpenBehavior.
      */
-    public function testHalfOpenBehavior()
+    public function testHalfOpenBehavior(): void
     {
         $breaker = new Breaker(
             'exception breaker',
@@ -87,7 +87,7 @@ class BreakerTest extends \PHPUnit_Framework_TestCase
         );
 
         $breaker->addListener(CircuitEvents::HALF_OPEN, function (CircuitEvent $event) {
-            $this->assertInstanceOf('Eljam\CircuitBreaker\Circuit', $event->getCircuit());
+            $this->assertInstanceOf(Circuit::class, $event->getCircuit());
         });
 
         $fn = function () {
@@ -99,7 +99,7 @@ class BreakerTest extends \PHPUnit_Framework_TestCase
                 $breaker->protect($fn);
             }
         } catch (CircuitOpenException $e) {
-            $this->assertSame('Eljam\CircuitBreaker\Exception\CircuitOpenException', get_class($e));
+            $this->assertSame(CircuitOpenException::class, get_class($e));
         }
 
         sleep(2);
@@ -114,7 +114,7 @@ class BreakerTest extends \PHPUnit_Framework_TestCase
     /**
      * testGetTheResult.
      */
-    public function testGetTheResult()
+    public function testGetTheResult(): void
     {
         $breaker = new Breaker('simple_echo');
         $hello = 'eljam';
@@ -131,7 +131,7 @@ class BreakerTest extends \PHPUnit_Framework_TestCase
     /**
      * testIgnoreException.
      */
-    public function testIgnoreAllException()
+    public function testIgnoreAllException(): void
     {
         $breaker = new Breaker(
             'simple_echo',
@@ -153,14 +153,14 @@ class BreakerTest extends \PHPUnit_Framework_TestCase
     /**
      * testThrowCustomException.
      */
-    public function testThrowCustomException()
+    public function testThrowCustomException(): void
     {
         $breaker = new Breaker(
             'custom_exception'
         );
         $hello = 'eljam';
 
-        $this->setExpectedException('Eljam\CircuitBreaker\Exception\CustomException');
+        $this->expectException(CustomException::class);
 
         $fn = function () use ($hello) {
             throw new CustomException("An error as occurred");
@@ -171,14 +171,14 @@ class BreakerTest extends \PHPUnit_Framework_TestCase
         $breaker->protect($fn);
     }
 
-    public function testAllowedException()
+    public function testAllowedException(): void
     {
         $breaker = new Breaker(
             'allowed_exception',
             [
                 'ignore_exceptions' => false,
                 'allowed_exceptions' => [
-                    'Eljam\CircuitBreaker\Exception\CustomException',
+                    CustomException::class,
                 ],
             ]
         );
@@ -195,12 +195,12 @@ class BreakerTest extends \PHPUnit_Framework_TestCase
         try {
             $breaker->protect($fn);
         } catch (CustomException $e) {
-            $this->assertInstanceOf('Eljam\CircuitBreaker\Exception\CustomException', $e);
+            $this->assertInstanceOf(CustomException::class, $e);
         }
         $this->assertSame(0, $breaker1FailureCount);
     }
 
-    public function tearDown()
+    public function tearDown(): void
     {
         @unlink($this->dir);
     }

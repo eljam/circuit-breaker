@@ -1,5 +1,6 @@
 composer.lock
 vendor/
-bin/
+bin/*
 .DS_Store
 .idea
+.phpunit.result.cache

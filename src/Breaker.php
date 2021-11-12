@@ -15,8 +15,8 @@
 
 namespace Eljam\CircuitBreaker;
 
-use Doctrine\Common\Cache\ArrayCache;
-use Doctrine\Common\Cache\Cache;
+use Symfony\Component\Cache\Adapter\AbstractAdapter;
+use Symfony\Component\Cache\Adapter\ArrayAdapter;
 use Eljam\CircuitBreaker\Event\CircuitEvent;
 use Eljam\CircuitBreaker\Event\CircuitEvents;
 use Eljam\CircuitBreaker\Exception\CircuitOpenException;
@@ -33,9 +33,9 @@ use Symfony\Component\OptionsResolver\OptionsResolver;
 class Breaker
 {
     /**
-     * $cache.
+     * $store.
      *
-     * @var Cache
+     * @var AbstractAdapter
      */
     protected $store;
 
@@ -79,7 +79,7 @@ class Breaker
     public function __construct(
         $name,
         array $config = [],
-        Cache $store = null,
+        AbstractAdapter $store = null,
         HandlerInterface $handler = null,
         EventDispatcherInterface $dispatcher = null
     ) {
@@ -98,7 +98,7 @@ class Breaker
         $resolver->setAllowedTypes('allowed_exceptions', 'array');
 
         $this->config = $resolver->resolve($config);
-        $this->store = $store ?: new ArrayCache();
+        $this->store = $store ?: new ArrayAdapter();
         $this->handler = $handler ?: new Handler($this->config);
         $this->dispatcher = $dispatcher ?: new EventDispatcher();
         $name = Utils::snakeCase($name);
@@ -252,7 +252,12 @@ class Breaker
      */
     protected function loadCircuit($name)
     {
-        $circuit = $this->store->fetch($name) ?: new Circuit($name);
+        $cacheItem = $this->store->getItem($name);
+        if ($cacheItem->isHit()) {
+            return $cacheItem->get();
+        }
+
+        $circuit = new Circuit($name);
 
         $this->writeToStore($circuit);
 
@@ -264,6 +269,8 @@ class Breaker
      */
     protected function writeToStore(Circuit $circuit)
     {
-        $this->store->save($circuit->getName(), $circuit);
+        $cacheItem = $this->store->getItem($circuit->getName());
+        $cacheItem->set($circuit);
+        $this->store->save($cacheItem);
     }
 }

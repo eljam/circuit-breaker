@@ -16,7 +16,7 @@
 namespace Eljam\CircuitBreaker\Event;
 
 use Eljam\CircuitBreaker\Circuit;
-use Symfony\Component\EventDispatcher\Event;
+use Symfony\Contracts\EventDispatcher\Event;
 
 /**
  * Class CircuitEvent.
