@@ -15,7 +15,7 @@
 
 namespace Eljam\CircuitBreaker;
 
-use Symfony\Component\Cache\Adapter\AbstractAdapter;
+use Symfony\Component\Cache\Adapter\AdapterInterface;
 use Symfony\Component\Cache\Adapter\ArrayAdapter;
 use Eljam\CircuitBreaker\Event\CircuitEvent;
 use Eljam\CircuitBreaker\Event\CircuitEvents;
@@ -35,7 +35,7 @@ class Breaker
     /**
      * $store.
      *
-     * @var AbstractAdapter
+     * @var AdapterInterface
      */
     protected $store;
 
@@ -72,14 +72,14 @@ class Breaker
      *
      * @param string                   $name
      * @param array                    $config
-     * @param Cache                    $store
+     * @param AdapterInterface         $store
      * @param HandlerInterface         $handler
      * @param EventDispatcherInterface $dispatcher
      */
     public function __construct(
         $name,
         array $config = [],
-        AbstractAdapter $store = null,
+        AdapterInterface $store = null,
         HandlerInterface $handler = null,
         EventDispatcherInterface $dispatcher = null
     ) {
