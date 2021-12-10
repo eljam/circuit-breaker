@@ -171,7 +171,7 @@ class Breaker
     protected function isClosed(Circuit $circuit)
     {
         if ($this->handler->isClosed($circuit)) {
-            $this->dispatcher->dispatch(CircuitEvents::CLOSED, (new CircuitEvent($circuit)));
+            $this->dispatcher->dispatch(new CircuitEvent($circuit), CircuitEvents::CLOSED);
 
             return true;
         }
@@ -190,7 +190,7 @@ class Breaker
     {
         $open = false;
         if ($this->handler->isOpen($circuit)) {
-            $this->dispatcher->dispatch(CircuitEvents::OPEN, (new CircuitEvent($circuit)));
+            $this->dispatcher->dispatch(new CircuitEvent($circuit), CircuitEvents::OPEN);
 
             $open = true;
         }
@@ -208,7 +208,7 @@ class Breaker
     protected function isHalfOpen(Circuit $circuit)
     {
         if ($this->handler->isHalfOpen($circuit)) {
-            $this->dispatcher->dispatch(CircuitEvents::HALF_OPEN, (new CircuitEvent($circuit)));
+            $this->dispatcher->dispatch(new CircuitEvent($circuit), CircuitEvents::HALF_OPEN);
 
             return true;
         }
@@ -225,7 +225,7 @@ class Breaker
     {
         $circuit->resetFailure();
 
-        $this->dispatcher->dispatch(CircuitEvents::SUCCESS, (new CircuitEvent($circuit)));
+        $this->dispatcher->dispatch(new CircuitEvent($circuit), CircuitEvents::SUCCESS);
         $this->writeToStore($circuit);
     }
 
@@ -239,7 +239,7 @@ class Breaker
         $circuit->incrementFailure();
         $circuit->setLastFailure(time());
 
-        $this->dispatcher->dispatch(CircuitEvents::FAILURE, (new CircuitEvent($circuit)));
+        $this->dispatcher->dispatch(new CircuitEvent($circuit), CircuitEvents::FAILURE);
         $this->writeToStore($circuit);
     }
 
